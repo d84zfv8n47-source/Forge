@@ -2815,7 +2815,10 @@ public class AiController {
         List<SpellAbility> result = Lists.newArrayList();
         for (SpellAbility sa : usableFromOpeningHand) {
             // Is there a better way for the AI to decide this?
-            if (doTrigger(sa, false)) {
+            // Leyline-style cards ("begin the game with it on the battlefield") are free: always take them
+            boolean freeStart = sa.getApi() == ApiType.ChangeZone && "Self".equals(sa.getParam("Defined"))
+                    && "Hand".equals(sa.getParam("Origin")) && "Battlefield".equals(sa.getParam("Destination"));
+            if (freeStart || doTrigger(sa, false)) {
                 result.add(sa);
             }
         }
