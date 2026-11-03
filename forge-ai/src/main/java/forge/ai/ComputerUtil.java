@@ -1214,6 +1214,24 @@ public class ComputerUtil {
         final Card card = sa.getHostCard();
         final CardState cardState = card.isFaceDown() ? card.getState(CardStateName.Original) : card.getCurrentState();
 
+        // A permanent we control grants haste and creature type to permanents like this one (e.g. Bello, Bard of the Brambles):
+        // cast it in Main1 so that it can attack right away.
+        if (!card.isCreature() && !card.isLand()) {
+            for (final Card perm : ai.getCardsIn(ZoneType.Battlefield)) {
+                for (final StaticAbility st : perm.getStaticAbilities()) {
+                    if (!st.hasParam("AddKeyword") || !st.hasParam("AddType") || !st.hasParam("Affected")) {
+                        continue;
+                    }
+                    if (!st.getParam("AddKeyword").contains("Haste") || !st.getParam("AddType").contains("Creature")) {
+                        continue;
+                    }
+                    if (card.isValid(st.getParam("Affected").split(","), ai, perm, st)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
         if (card.hasSVar("PlayMain1")) {
             if (card.getSVar("PlayMain1").equals("ALWAYS") || sa.getPayCosts().hasNoManaCost()) {
                 return true;
