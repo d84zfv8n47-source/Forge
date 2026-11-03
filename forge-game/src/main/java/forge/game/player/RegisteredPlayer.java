@@ -135,7 +135,7 @@ public class RegisteredPlayer {
     public static RegisteredPlayer forCommander(final Deck deck) {
         RegisteredPlayer start = new RegisteredPlayer(deck);
         start.commanders = deck.getCommanders();
-        start.setStartingLife(40);
+        start.setStartingLife(Integer.getInteger("forge.commanderLife", 40));
         return start;
     }
 
