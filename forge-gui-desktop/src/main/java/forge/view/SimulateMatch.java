@@ -20,7 +20,10 @@ import forge.game.GameLogEntryType;
 import forge.game.GameRules;
 import forge.game.GameType;
 import forge.game.Match;
+import forge.game.player.Player;
 import forge.game.player.RegisteredPlayer;
+import forge.game.card.Card;
+import forge.game.zone.ZoneType;
 import forge.gamemodes.tournament.system.AbstractTournament;
 import forge.gamemodes.tournament.system.TournamentBracket;
 import forge.gamemodes.tournament.system.TournamentPairing;
@@ -273,6 +276,23 @@ public class SimulateMatch {
         Collections.reverse(log);
         for (GameLogEntry l : log) {
             System.out.println(l);
+        }
+
+        // DC Meta Tester: carte in mano e carte viste (fuori dal grimorio) a fine partita, per l'analisi delle carte
+        if (outputGamelog) {
+            for (Player p : g1.getRegisteredPlayers()) {
+                StringBuilder hand = new StringBuilder(), seen = new StringBuilder();
+                for (Card c : p.getCardsIn(ZoneType.Hand)) {
+                    if (!c.isToken()) hand.append(c.getName()).append('|');
+                }
+                for (ZoneType z : new ZoneType[]{ZoneType.Hand, ZoneType.Battlefield, ZoneType.Graveyard, ZoneType.Exile}) {
+                    for (Card c : p.getCardsIn(z)) {
+                        if (!c.isToken() && c.getOwner() == p) seen.append(c.getName()).append('|');
+                    }
+                }
+                System.out.println("DCMETA-HAND " + p.getName() + " :: " + hand);
+                System.out.println("DCMETA-SEEN " + p.getName() + " :: " + seen);
+            }
         }
 
         // If both players life totals to 0 in a single turn, the game should end in a draw
