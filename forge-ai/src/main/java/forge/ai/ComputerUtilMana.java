@@ -766,6 +766,12 @@ public class ComputerUtilMana {
                 if (sa.hasParam("AIPhyrexianPayment")) {
                     if ("Never".equals(sa.getParam("AIPhyrexianPayment"))) {
                         break; // unwise to pay
+                    } else if (sa.getParam("AIPhyrexianPayment").startsWith("LifeAbove.")) {
+                        // pay 2 life instead of mana only while staying above a safe life total
+                        int floor = Integer.parseInt(sa.getParam("AIPhyrexianPayment").substring(10));
+                        if (ai.getLife() - phyLifeToPay - 2 < floor) {
+                            break;
+                        }
                     } else if (sa.getParam("AIPhyrexianPayment").startsWith("OnFatalDamage.")) {
                         int dmg = Integer.parseInt(sa.getParam("AIPhyrexianPayment").substring(14));
                         if (ai.getOpponents().stream().noneMatch(PlayerPredicates.lifeLessOrEqualTo(dmg))) {

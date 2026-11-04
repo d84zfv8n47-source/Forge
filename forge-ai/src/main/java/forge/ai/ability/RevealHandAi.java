@@ -20,6 +20,11 @@ public class RevealHandAi extends RevealAiBase {
             return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
         }
 
+        // cantrips (look at a hand, then draw a card): replacing themselves, they are always worth casting
+        if (sa.getSubAbility() != null && sa.getSubAbility().getApi() == forge.game.ability.ApiType.Draw && !ai.getCardsIn(forge.game.zone.ZoneType.Library).isEmpty()) {
+            return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
+        }
+
         return super.checkApiLogic(ai, sa);
     }
 
