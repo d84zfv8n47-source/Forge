@@ -33,6 +33,17 @@ public class PumpAllAi extends PumpAiBase {
         final Cost abCost = sa.getPayCosts();
         final String logic = sa.getParamOrDefault("AILogic", "");
 
+        if (logic.equals("PastInFlames")) {
+            // worth it with a few rituals and cantrips in the graveyard, on the AI's own turn
+            int fuel = 0;
+            for (final Card c : ai.getCardsIn(ZoneType.Graveyard)) {
+                if ((c.isInstant() || c.isSorcery()) && !c.getName().equals(source.getName())) {
+                    fuel++;
+                }
+            }
+            return fuel >= 3 && game.getPhaseHandler().isPlayerTurn(ai) && game.getPhaseHandler().getPhase().isMain()
+                    ? new AiAbilityDecision(100, AiPlayDecision.WillPlay) : new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
+        }
         if (logic.equals("UntapCombatTrick")) {
             PhaseHandler ph = ai.getGame().getPhaseHandler();
             if (!(ph.is(PhaseType.COMBAT_DECLARE_BLOCKERS, ai)

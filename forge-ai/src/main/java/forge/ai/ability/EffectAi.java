@@ -355,6 +355,15 @@ public class EffectAi extends SpellAbilityAi {
             } else if (logic.equals("Burn")) {
                 SpellAbility burn = sa.getSubAbility();
                 return SpellApiToAi.Converter.get(burn).canPlayWithSubs(ai, burn).willingToPlay() ? new AiAbilityDecision(100, AiPlayDecision.WillPlay) : new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
+            } else if (logic.equals("WishFinisher")) {
+                // cast Wish in the middle of a storm turn, when the sideboard holds the finisher
+                boolean finisher = false;
+                for (final Card c : ai.getCardsIn(ZoneType.Sideboard)) {
+                    finisher |= forge.ai.simulation.ComboPlan.isStormFinisher(c);
+                }
+                final int storm = game.getStack().getSpellsCastThisTurn().size();
+                return finisher && storm >= 3 && game.getPhaseHandler().isPlayerTurn(ai)
+                        ? new AiAbilityDecision(100, AiPlayDecision.WillPlay) : new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
             } else if (logic.equals("YawgmothsWill")) {
                 return SpecialCardAi.YawgmothsWill.consider(ai, sa) ? new AiAbilityDecision(100, AiPlayDecision.WillPlay) : new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
             } else if (logic.startsWith("NeedCreatures")) {

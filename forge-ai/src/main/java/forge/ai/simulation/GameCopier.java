@@ -41,6 +41,7 @@ public class GameCopier {
         ZoneType.Exile,
         ZoneType.Stack,
         ZoneType.Command,
+        ZoneType.Sideboard,
     };
 
     private Game origGame;

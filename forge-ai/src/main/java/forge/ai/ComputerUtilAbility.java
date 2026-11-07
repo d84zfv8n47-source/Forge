@@ -81,6 +81,12 @@ public class ComputerUtilAbility {
         all.addAll(IterableUtil.filter(player.getCardsIn(ZoneType.Command), c -> !c.isImmutable() || c.isEmblem()));
         all.addAll(game.getCardsIn(ZoneType.Exile));
         all.addAll(game.getCardsIn(ZoneType.Battlefield));
+        // Wish and the like: "you may play a card you own from outside the game this turn"
+        for (final Card c : player.getCardsIn(ZoneType.Sideboard)) {
+            if (!c.mayPlay(player).isEmpty()) {
+                all.add(c);
+            }
+        }
         return all;
     }
 

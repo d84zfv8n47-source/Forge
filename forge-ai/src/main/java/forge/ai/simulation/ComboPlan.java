@@ -426,6 +426,23 @@ public final class ComboPlan {
     /** Reads the deck of this player (every card it owns in a game zone, the sideboard excluded) once. */
     public static ComboPlan scan(final Player player) {
         try {
+            final CardCollectionView deck = deckCards(player);
+            boolean wish = false;
+            for (final Card c : deck) {
+                wish |= isSideboardWish(c);
+            }
+            if (wish) { // the finisher waits in the sideboard: it is part of the kill
+                final List<Card> withSb = new ArrayList<>();
+                for (final Card c : deck) {
+                    withSb.add(c);
+                }
+                for (final Card c : player.getCardsIn(ZoneType.Sideboard)) {
+                    if (isStormFinisher(c)) {
+                        withSb.add(c);
+                    }
+                }
+                return scan(withSb);
+            }
             return scan(deckCards(player));
         } catch (final RuntimeException e) {
             return EMPTY; // a refinement only: never let it break a game
@@ -2506,6 +2523,9 @@ public final class ComboPlan {
         if (c.isLand() || c.isCreature()) {
             return false;
         }
+        if (isSideboardWish(c)) {
+            return true;
+        }
         for (final SpellAbility sa : c.getSpellAbilities()) {
             for (SpellAbility a = sa; a != null; a = a.getSubAbility()) {
                 if (a.getApi() != ApiType.ChangeZone) {
@@ -2544,8 +2564,32 @@ public final class ComboPlan {
 
     public static boolean isRecursionAbility(final Collection<SpellAbility> abilities) {
         for (final SpellAbility sa : abilities) {
-            if ("YawgmothsWill".equals(sa.getParamOrDefault("AILogic", ""))) {
+            if ("YawgmothsWill".equals(sa.getParamOrDefault("AILogic", "")) || "PastInFlames".equals(sa.getParamOrDefault("AILogic", ""))) {
                 return true;
+            }
+            // Past in Flames: the instants and sorceries of the graveyard gain flashback
+            if (sa.getApi() == ApiType.PumpAll && sa.getParamOrDefault("KW", "").contains("Flashback")
+                    && sa.getParamOrDefault("PumpZone", "").contains("Graveyard")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Wish: "you may play a card you own from outside the game this turn" (an effect that lets the sideboard be played). */
+    public static boolean isSideboardWish(final Card c) {
+        if (c.isLand() || c.isCreature()) {
+            return false;
+        }
+        for (final SpellAbility sa : c.getSpellAbilities()) {
+            if (sa.getApi() != ApiType.Effect || !sa.hasParam("StaticAbilities")) {
+                continue;
+            }
+            for (final String st : sa.getParam("StaticAbilities").split(",")) {
+                final String text = c.getSVar(st.trim());
+                if (text != null && text.contains("MayPlay") && text.contains("AffectedZone$ Sideboard")) {
+                    return true;
+                }
             }
         }
         return false;
@@ -2572,7 +2616,8 @@ public final class ComboPlan {
                 mana++;
             }
         }
-        if (finishers < 1 || tutors < 3 || mana < 8) {
+        // Ruby Storm: two Wishes that fetch the finisher from the sideboard, and Past in Flames
+        if (finishers < 1 || tutors < 1 || tutors + engines < 3 || mana < 8) {
             return null;
         }
         final int strength = 25 + 4 * Math.min(mana, 8) + 3 * Math.min(tutors, 6) + 8 * Math.min(finishers, 3)
@@ -2615,11 +2660,30 @@ public final class ComboPlan {
             return false;
         }
         final int per = perCopyDamage(finisher);
-        if (per <= 0 || ai.getOpponents().size() != 1) {
+        if (ai.getOpponents().size() != 1) {
             return false;
         }
         final Player opp = ai.getWeakestOpponent();
+        if (per <= 0) {
+            // Empty the Warrens: an army of tokens big enough for the opponent's board wins in a turn or two
+            final int tokens = perCopyTokens(finisher) * (stormCount(ai) + 1);
+            return opp != null && tokens > 0 && tokens >= 10 + 2 * opp.getCreaturesInPlay().size();
+        }
         return opp != null && (long) per * (stormCount(ai) + 1) >= opp.getLife();
+    }
+
+    /** How many tokens one copy of a storm finisher makes: 2 for Empty the Warrens, else 0. */
+    static int perCopyTokens(final Card c) {
+        for (final SpellAbility sa : c.getSpellAbilities()) {
+            if (sa.getApi() == ApiType.Token) {
+                try {
+                    return Integer.parseInt(sa.getParamOrDefault("TokenAmount", "1").trim());
+                } catch (final NumberFormatException e) {
+                    return 0;
+                }
+            }
+        }
+        return 0;
     }
 
     /** A cheap guess at the mana the player can spend this turn: what floats in the pool and the untapped mana sources. */

@@ -41,8 +41,14 @@ public final class StormSolver {
             this.response = response;
         }
 
+        /** "Desperate Ritual: Add {R}{R}{R}. by Reckless Impulse (97)": which effect lets it be played changes from game to game. */
+        private static String plain(final String text) {
+            return text.replaceAll(" by [^|]*?\\(\\d+\\)", "").replaceAll("\\s+", " ").trim();
+        }
+
         boolean matches(final SpellAbility other) {
-            return other.getHostCard() != null && host.equals(other.getHostCard().getName()) && sa.equals(other.toString());
+            return other.getHostCard() != null && host.equals(other.getHostCard().getName())
+                    && (sa.equals(other.toString()) || plain(sa).equals(plain(other.toString())));
         }
 
         @Override
@@ -94,9 +100,9 @@ public final class StormSolver {
 
     public static final int DEFAULT_MAX_NODES = 400;
     public static final long DEFAULT_BUDGET_NANOS = 4_000_000_000L;
-    private static final int MAX_SOLVES_PER_TURN = 4;
+    private static final int MAX_SOLVES_PER_TURN = 8;
     /** However many lines were found and left again, a turn is searched at most this often. */
-    private static final int MAX_TOTAL_SOLVES = 16;
+    private static final int MAX_TOTAL_SOLVES = 24;
     /** The search stops (and the AI falls back to Flat Monte Carlo) when this share of the heap is in use. */
     private static final double MEMORY_LIMIT = 0.90;
     private static final boolean TRACE = Boolean.getBoolean("storm.trace");
